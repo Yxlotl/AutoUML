@@ -9,9 +9,14 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.ExecutableType;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
-import javax.tools.JavaFileObject;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +46,7 @@ public class MarkProcessor extends AbstractProcessor {
             List<Element> fail = sorted.get(false);
             notify(fail);
 
-            if(pass.isEmpty()) {
+            if (pass.isEmpty()) {
                 continue;
             }
 
@@ -82,28 +87,39 @@ public class MarkProcessor extends AbstractProcessor {
         if (lastDot > 0) {
             packageName = className.substring(0, lastDot);
         }
-        JavaFileObject f = processingEnv.getFiler().createSourceFile(className);
-        try(PrintWriter out = new PrintWriter(f.openWriter())) {
-            out.println("/*");
-            if (packageName != null) {
-                out.println("The package was: " + packageName);
-            }
-            out.println("The class was: " + className);
-            out.println("");
-            out.println("Methods: ");
-            for (String sc : methods.keySet()) {
-                out.println("    <" + sc + ">");
-                for (String n : methods.get(sc)) {
-                    out.println("        " + n);
-                }
-            }
-            out.println("*/");
+        PrintWriter out;
+        try {
+            Files.createDirectory(Paths.get("target/output"));
+            out = new PrintWriter(new BufferedWriter(new FileWriter("target/output/" + className + "_info.txt")));
+        } catch (FileAlreadyExistsException e) {
+            String name = e.getFile();
+            Files.deleteIfExists(Paths.get("target/output/"+name));
+            out = new PrintWriter(new BufferedWriter(new FileWriter("target/output/" + className + "_info.txt")));
         }
+        out.println("/*");
+        if (packageName != null) {
+            out.println("The package was: " + packageName);
+        }
+        out.println("The class was: " + className);
+        out.println("");
+        out.println("Methods: ");
+        for (String sc : methods.keySet()) {
+            out.println("    <" + sc + ">");
+            for (String n : methods.get(sc)) {
+                out.println("        " + n);
+            }
+        }
+        out.println("*/");
+        out.close();
+    }
+
+    private void printToFile(PrintWriter out) {
+
     }
     private List<String> getFormattedParams(ExecutableType e) {
         ArrayList<String> paramTypes = new ArrayList<>();
         e.getParameterTypes().stream().map(TypeMirror::toString).map(s -> s + " : ").forEach(paramTypes::add);
-        for(int i = 0; i < paramTypes.size(); i++) {
+        for (int i = 0; i < paramTypes.size(); i++) {
             paramTypes.set(i, paramTypes.get(i) + i);
         }
         return paramTypes;
