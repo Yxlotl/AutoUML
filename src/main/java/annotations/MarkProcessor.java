@@ -13,14 +13,14 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.Executable;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @SupportedAnnotationTypes("annotations.Mark")
@@ -54,7 +54,7 @@ public class MarkProcessor extends AbstractProcessor {
 
             Map<String, List<String>> methodMap = pass.stream().collect(Collectors.toMap(
                     method -> method.getSimpleName().toString(),
-                    method -> getFormattedParams((ExecutableType) method.asType())
+                    this::getFormattedParams
             ));
 
             try {
@@ -113,14 +113,14 @@ public class MarkProcessor extends AbstractProcessor {
         out.close();
     }
 
-    private void printToFile(PrintWriter out) {
-
-    }
-    private List<String> getFormattedParams(ExecutableType e) {
+    private List<String> getFormattedParams(Element el) {
+        ExecutableType e = ((ExecutableType) el.asType());
         ArrayList<String> paramTypes = new ArrayList<>();
-        e.getParameterTypes().stream().map(TypeMirror::toString).map(s -> s + " : ").forEach(paramTypes::add);
+
+        e.getParameterTypes().stream().map(TypeMirror::toString).forEach(paramTypes::add);
+
         for (int i = 0; i < paramTypes.size(); i++) {
-            paramTypes.set(i, paramTypes.get(i) + i);
+            paramTypes.set(i, paramTypes.get(i) + " [" + i + "]");
         }
         return paramTypes;
     }
