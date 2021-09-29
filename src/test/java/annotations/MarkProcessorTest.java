@@ -7,7 +7,6 @@ public class MarkProcessorTest {
     public void test(int a) {
 
     }
-
     @Mark
     public void stinky(OutputStream winky) {
 
