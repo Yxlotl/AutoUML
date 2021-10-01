@@ -1,5 +1,7 @@
 package annotations;
 
+import writer.LatexWriter;
+
 import com.google.auto.service.AutoService;
 
 import javax.annotation.processing.*;
@@ -57,6 +59,8 @@ public class MarkProcessor extends AbstractProcessor {
                 }
             }
         }
+        LatexWriter writer = new LatexWriter(annotatedClassesInfo);
+        writer.write();
         return true;
     }
 
