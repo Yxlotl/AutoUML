@@ -13,13 +13,16 @@ import java.util.List;
 class BlockPrinter {
     private static PrintWriter out;
     private int indentLevel;
+    private final int textSize;
 
-    BlockPrinter(ClassInfoContainer info, int currentIndentLevel) {
-        write(info);
+    BlockPrinter(ClassInfoContainer info, int currentIndentLevel, int textSize) {
         indentLevel = currentIndentLevel;
+        this.textSize = textSize;
+        write(info);
     }
 
     private void write(ClassInfoContainer c) {
+        beginClass(c);
         for(ElementKind type : c.getFieldElements().keySet()) {
             for(FieldInfo fieldInfo : c.getFieldElements().get(type)) {
                 printField(fieldInfo);
@@ -30,6 +33,16 @@ class BlockPrinter {
                 printExecutable(exEl);
             }
         }
+        endClass();
+    }
+    private void beginClass(ClassInfoContainer c) {
+        indent();
+        int x = 0; int y = 0;
+        println("\\begin{class}[text width=" + textSize + "cm]" +
+                "{" + c.getClassName().toString() + "}{" + x + "," + y + "}");
+    }
+    private void endClass() {
+        println("\\end{class}");
     }
     private void printField(FieldInfo f) {
 
@@ -40,12 +53,11 @@ class BlockPrinter {
     static void setOut(PrintWriter fileOut) {
         out = fileOut;
     }
-
-    private void print(String s) {
+    private void println(String s) {
         for(int i = indentLevel; i > 0; i--) {
             out.print("    ");
         }
-        out.print(s);
+        out.println(s);
     }
     private void indent() {
         indentLevel++;
