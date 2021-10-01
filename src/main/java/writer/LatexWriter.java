@@ -34,8 +34,11 @@ public class LatexWriter {
         //create the actual file
         makeFile();
         begin();
-        for(ClassInfoContainer c : context) {
-            write(c);
+        for(int i = 0; i < context.size(); i++) {
+            write(context.get(i));
+            if(i < context.size() - 1) {
+                println("");
+            }
         }
         conclude();
     }

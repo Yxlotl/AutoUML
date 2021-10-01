@@ -3,12 +3,13 @@ package writer;
 import annotations.ClassInfoContainer;
 import annotations.ExecutableInfo;
 import annotations.FieldInfo;
+import annotations.Info;
 
 import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.Modifier;
 import java.io.PrintWriter;
-import java.lang.annotation.ElementType;
-import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 class BlockPrinter {
     private static PrintWriter out;
@@ -28,9 +29,12 @@ class BlockPrinter {
                 printField(fieldInfo);
             }
         }
+        println("");
         for(ElementKind type : c.getExecutableElements().keySet()) {
             for(ExecutableInfo exEl : c.getExecutableElements().get(type)) {
-                printExecutable(exEl);
+                if(!exEl.getName().toString().equals("<init>")) {
+                    printExecutable(exEl);
+                }
             }
         }
         endClass();
@@ -45,10 +49,80 @@ class BlockPrinter {
         println("\\end{class}");
     }
     private void printField(FieldInfo f) {
-
+        indent();
+        println(
+                appendVisibilityModifier(new StringBuilder("\\attribute{"), f.getModifiers())
+                    .append(f.getName().toString())
+                    .append(" : ")
+                    .append(removePackageInfo(f.getType().toString()))
+                    .append("}")
+                    .toString()
+        );
+        deIndent();
     }
     private void printExecutable(ExecutableInfo ex) {
-
+        indent();
+        println(appendVisibilityModifier(new StringBuilder("\\operation{"), ex.getModifiers())
+                .append(ex.getName().toString())
+                .append("(")
+                .append(getExecutableParams(ex))
+                .append(")")
+                .append(getReturnType(ex))
+                .append("}")
+                .toString()
+        );
+        deIndent();
+    }
+    private String getReturnType(ExecutableInfo info) {
+        if(info.getReturnType().toString().equals("void")) {
+            return "";
+        }
+        else return " : " + removePackageInfo(info.getReturnType().toString());
+    }
+    private String getExecutableParams(ExecutableInfo info) {
+        StringBuilder stringOut = new StringBuilder();
+        for(int i = 0; i < info.getInfo().size(); i++) {
+            stringOut.append(info.getInfo().get(i).getName().toString());
+            stringOut.append(" : ");
+            stringOut.append(removePackageInfo(info.getInfo().get(i).getType().toString()));
+            if(i < info.getInfo().size() - 1) {
+                stringOut.append(", ");
+            }
+        }
+        return stringOut.toString();
+    }
+    private String removePackageInfo(String in) {
+        int cursor = 0;
+        String current = in;
+        while(current.contains(".")) {
+            current = in.substring(cursor);
+            cursor++;
+        }
+        return current;
+    }
+    private StringBuilder appendVisibilityModifier(StringBuilder currentString, Set<Modifier> modifiers) {
+        //collect visibility modifiers
+        Set<Modifier> modifierSet = modifiers.stream()
+                .filter(n -> (n == Modifier.PUBLIC || n == Modifier.PRIVATE || n == Modifier.PROTECTED))
+                .collect(Collectors.toSet());
+        if(modifierSet.isEmpty()) {
+            currentString.append("$\\sim$ ");
+        } else {
+            for (Modifier m : modifierSet) {
+                switch (m) {
+                    case PUBLIC:
+                        currentString.append("+ ");
+                        break;
+                    case PRIVATE:
+                        currentString.append("- ");
+                        break;
+                    case PROTECTED:
+                        currentString.append("\\# ");
+                        break;
+                }
+            }
+        }
+        return currentString;
     }
     static void setOut(PrintWriter fileOut) {
         out = fileOut;

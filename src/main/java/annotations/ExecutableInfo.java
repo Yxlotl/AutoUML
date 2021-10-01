@@ -1,6 +1,5 @@
 package annotations;
 
-import javax.accessibility.AccessibleValue;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.Name;
 import javax.lang.model.type.TypeMirror;
@@ -21,11 +20,19 @@ public class ExecutableInfo {
         this.modifiers = modifiers;
     }
 
-    Name getName() {
+    public Name getName() {
         return name;
     }
 
-    List<Info> getInfo() {
+    public List<Info> getInfo() {
         return info;
+    }
+
+    public TypeMirror getReturnType() {
+        return returnType;
+    }
+
+    public Set<Modifier> getModifiers() {
+        return modifiers;
     }
 }

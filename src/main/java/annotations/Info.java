@@ -3,7 +3,7 @@ package annotations;
 import javax.lang.model.element.Name;
 import javax.lang.model.type.TypeMirror;
 
-class Info {
+public class Info {
     private final Name name;
     private final TypeMirror type;
 
@@ -12,11 +12,12 @@ class Info {
         this.type = type;
     }
 
-    Name getName() {
+    public Name getName() {
         return this.name;
     }
 
-    TypeMirror getType() {
+    public TypeMirror getType() {
         return this.type;
     }
+
 }
