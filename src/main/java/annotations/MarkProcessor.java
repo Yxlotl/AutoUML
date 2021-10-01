@@ -60,7 +60,7 @@ public class MarkProcessor extends AbstractProcessor {
             }
         }
         LatexWriter writer = new LatexWriter(annotatedClassesInfo);
-        writer.write();
+        writer.writeAll();
         return true;
     }
 

@@ -10,8 +10,8 @@ import java.util.*;
 
 public class ClassInfoContainer implements Serializable {
     private final Name className;
-    private Map<ElementKind, List<ExecutableInfo>> executableElements = new HashMap<>();
-    private Map<ElementKind, List<FieldInfo>> fieldElements = new HashMap<>();
+    private final Map<ElementKind, List<ExecutableInfo>> executableElements = new HashMap<>();
+    private final Map<ElementKind, List<FieldInfo>> fieldElements = new HashMap<>();
 
     ClassInfoContainer(Name className) {
         this.className = className;
@@ -30,6 +30,14 @@ public class ClassInfoContainer implements Serializable {
         }
         fieldElements.get(kind).add(info);
     }
-
+    public Map<ElementKind, List<ExecutableInfo>> getExecutableElements() {
+        return executableElements;
+    }
+    public Map<ElementKind, List<FieldInfo>> getFieldElements() {
+        return fieldElements;
+    }
+    public Name getClassName() {
+        return className;
+    }
 
 }
