@@ -1,8 +1,8 @@
 <project>
     <modelVersion>4.0.0</modelVersion>
     <groupId>us.yxlotl</groupId>
-    <artifactId>AnnotationProcessorDebugTest</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <artifactId>AutoUML</artifactId>
+    <version>1.1</version>
 
     <dependencies>
         <dependency>

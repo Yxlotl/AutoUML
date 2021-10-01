@@ -19,12 +19,12 @@ import java.util.List;
 //use this standard: http://ctan.math.illinois.edu/graphics/pgf/contrib/pgf-umlcd/pgf-umlcd-manual.pdf
 public class LatexWriter {
     private final List<ClassInfoContainer> context;
-    private static PrintWriter out;
-    private static final String outputDir = "target/output/";
+    static PrintWriter out;
+    private static final String outputDir = "output/";
     private static ClassInfoContainer currentBuffer;
     private static int indentBuffer = 0;
 
-    private static final int TEXT_SIZE = 7;
+    private static final int TEXT_SIZE = 10;
 
     public LatexWriter(List<ClassInfoContainer> in) {
         context = in;
@@ -73,7 +73,6 @@ public class LatexWriter {
         println("\\usepackage{tikz}");
         println("\\usepackage{pgf-umlcd}");
         println("\\begin{tikzpicture}");
-        BlockPrinter.setOut(out);
     }
     private void conclude() {
         indentBuffer = 0;

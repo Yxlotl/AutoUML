@@ -17,6 +17,7 @@ class BlockPrinter {
     private final int textSize;
 
     BlockPrinter(ClassInfoContainer info, int currentIndentLevel, int textSize) {
+        out = LatexWriter.out;
         indentLevel = currentIndentLevel;
         this.textSize = textSize;
         write(info);
@@ -52,7 +53,7 @@ class BlockPrinter {
         indent();
         println(
                 appendVisibilityModifier(new StringBuilder("\\attribute{"), f.getModifiers())
-                    .append(f.getName().toString())
+                    .append(f.getName().toString().replaceAll("_", "\\_"))
                     .append(" : ")
                     .append(removePackageInfo(f.getType().toString()))
                     .append("}")
@@ -63,7 +64,7 @@ class BlockPrinter {
     private void printExecutable(ExecutableInfo ex) {
         indent();
         println(appendVisibilityModifier(new StringBuilder("\\operation{"), ex.getModifiers())
-                .append(ex.getName().toString())
+                .append(ex.getName().toString().replaceAll("_", "\\_"))
                 .append("(")
                 .append(getExecutableParams(ex))
                 .append(")")
