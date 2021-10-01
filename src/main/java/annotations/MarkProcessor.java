@@ -4,8 +4,7 @@ import com.google.auto.service.AutoService;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.*;
 import javax.lang.model.type.ExecutableType;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
@@ -13,6 +12,7 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.annotation.ElementType;
 import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -50,20 +50,28 @@ public class MarkProcessor extends AbstractProcessor {
                 continue;
             }
 
-            String className = ((TypeElement) pass.get(0).getEnclosingElement()).getQualifiedName().toString();
-
-            Map<String, List<String>> methodMap = pass.stream().collect(Collectors.toMap(
-                    method -> method.getSimpleName().toString(),
-                    this::getFormattedParams
-            ));
-
-            try {
-                writeToFile(className, methodMap);
-            } catch (IOException e) {
-                e.printStackTrace();
+            for(Element p : pass) {
+                Map<ElementKind, List<Element>> sortedInfo = getClassInfo(p);
+                try {
+                    writeToFile((p.getEnclosingElement()).getSimpleName().toString(), p,  sortedInfo);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         }
         return true;
+    }
+
+    private Map<ElementKind, List<Element>> getClassInfo(Element classElement) {
+        List<? extends Element> go  = classElement.getEnclosedElements();
+        Map<ElementKind, List<Element>> out = new HashMap<>();
+        for(Element e : go) {
+            if(!out.containsKey(e.getKind())) {
+                out.put(e.getKind(), new ArrayList<>());
+            }
+            out.get(e.getKind()).add(e);
+        }
+        return out;
     }
 
     @Override
@@ -81,13 +89,9 @@ public class MarkProcessor extends AbstractProcessor {
                         "@Mark is being used incorrectly.", e));
     }
 
-    private void writeToFile(String className, Map<String, List<String>> methods) throws IOException {
-        String packageName = null;
-        int lastDot = className.lastIndexOf('.');
-        if (lastDot > 0) {
-            packageName = className.substring(0, lastDot);
-        }
-        PrintWriter out;
+    private static PrintWriter out;
+    private void writeToFile(String packageName, Element classElement, Map<ElementKind, List<Element>> classInfo) throws IOException {
+        String className = classElement.getSimpleName().toString();
         try {
             Files.createDirectory(Paths.get("target/output"));
             out = new PrintWriter(new BufferedWriter(new FileWriter("target/output/" + className + "_info.txt")));
@@ -98,21 +102,52 @@ public class MarkProcessor extends AbstractProcessor {
         }
         out.println("/*");
         if (packageName != null) {
-            out.println("The package was: " + packageName);
+            out.println("PACKAGE:");
+            out.println("    " + packageName);
+            out.println();
         }
-        out.println("The class was: " + className);
-        out.println("");
-        out.println("Methods: ");
-        for (String sc : methods.keySet()) {
-            out.println("    <" + sc + ">");
-            for (String n : methods.get(sc)) {
-                out.println("        " + n);
+        out.println("CLASS:");
+        out.println("    " + className);
+        out.println();
+
+        for(ElementKind e : classInfo.keySet()) {
+            if(e.isField()) {
+                writeSection(e, classInfo);
+            }
+            if(e == ElementKind.METHOD || e == ElementKind.CONSTRUCTOR) {
+                writeParamSection(e, classInfo);
             }
         }
+
         out.println("*/");
         out.close();
     }
+    private void writeSection(ElementKind e, Map<ElementKind, List<Element>> info) {
+        out.println(e.toString() + ":");
+        List<Element> names = info.get(e);
+        names.forEach(m -> out.println("    " + m.getSimpleName().toString() + " : " + m.asType().toString()));
+        out.println("");
+    }
 
+    private void writeParamSection(ElementKind e, Map<ElementKind, List<Element>> info) {
+        out.println(e.toString() + ":");
+        List<Element> names = info.get(e);
+        for(Element method : names) {
+            out.println("    " + method.getSimpleName().toString());
+
+            //bad fix, will probably break later
+            if(!((ExecutableType) method.asType()).getReturnType().toString().equals("void"))
+            out.println("    RETURNS TYPE: " + ((ExecutableType) method.asType()).getReturnType().toString());
+
+            if(!((ExecutableType) method.asType()).getParameterTypes().isEmpty()) {
+                out.println("    PARAMS: ");
+                ((ExecutableType) method.asType()).getParameterTypes().forEach(
+                        n -> out.println("        " + n.toString())
+                );
+            }
+            out.println("");
+        }
+    }
     private List<String> getFormattedParams(Element el) {
         ExecutableType e = ((ExecutableType) el.asType());
         ArrayList<String> paramTypes = new ArrayList<>();

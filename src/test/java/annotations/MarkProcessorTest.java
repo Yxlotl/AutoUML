@@ -2,12 +2,12 @@ package annotations;
 
 import java.io.OutputStream;
 
+@Mark
 public class MarkProcessorTest {
-    @Mark
+    int test;
     public void test(int a) {
 
     }
-    @Mark
     public void stinky(OutputStream winky) {
 
     }
