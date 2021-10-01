@@ -4,10 +4,7 @@ import com.google.auto.service.AutoService;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.*;
 import javax.lang.model.type.ExecutableType;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
@@ -24,11 +21,9 @@ import java.util.stream.Collectors;
 @SupportedAnnotationTypes("annotations.Mark")
 @AutoService(Processor.class)
 public class MarkProcessor extends AbstractProcessor {
-    private static PrintWriter out;
     Messager messager;
-    static final String outputDir = "target/output/";
-    static boolean printParams = true;
-    private static Container dataOut = new Container();
+    private List<ClassInfoContainer> annotatedClassesInfo = new ArrayList<>();
+    private static ClassInfoContainer dataBuffer;
     @Override
     public void init(ProcessingEnvironment env) {
         messager = env.getMessager();
@@ -53,8 +48,10 @@ public class MarkProcessor extends AbstractProcessor {
 
             for (Element p : pass) {
                 Map<ElementKind, List<Element>> sortedInfo = getClassInfo(p);
+                dataBuffer = new ClassInfoContainer(p.getSimpleName());
                 try {
-                    writeToFile((p.getEnclosingElement()).getSimpleName().toString(), p, sortedInfo);
+                    writeToFile(sortedInfo);
+                    annotatedClassesInfo.add(dataBuffer);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -90,73 +87,34 @@ public class MarkProcessor extends AbstractProcessor {
                         "@Mark is being used incorrectly.", e));
     }
 
-    private void writeToFile(String packageName, Element classElement, Map<ElementKind, List<Element>> classInfo) throws IOException {
-        String className = classElement.getSimpleName().toString();
-        try {
-            Files.createDirectory(Paths.get(outputDir));
-            out = new PrintWriter(new BufferedWriter(new FileWriter(outputDir + className + "_info.txt")));
-        } catch (FileAlreadyExistsException e) {
-            String name = e.getFile();
-            Files.deleteIfExists(Paths.get(outputDir + name));
-            out = new PrintWriter(new BufferedWriter(new FileWriter(outputDir + className + "_info.txt")));
-        }
-        out.println("/*");
-        if (packageName != null) {
-            out.println("PACKAGE:");
-            out.println("    " + packageName);
-            out.println();
-        }
-        out.println("CLASS:");
-        out.println("    " + className);
-        out.println();
-
+    private void writeToFile(Map<ElementKind, List<Element>> classInfo) throws IOException {
         for (ElementKind e : classInfo.keySet()) {
             if (e.isField()) {
                 writeSection(e, classInfo);
             }
             if (e == ElementKind.METHOD || e == ElementKind.CONSTRUCTOR) {
-                writeParamSection(e, classInfo, classElement);
+                writeParamSection(e, classInfo);
             }
         }
-
-        out.println("*/");
-        out.close();
     }
 
     private void writeSection(ElementKind e, Map<ElementKind, List<Element>> info) {
-        out.println(e.toString() + ":");
         List<Element> names = info.get(e);
-        names.forEach(m -> out.println("    " + m.getSimpleName().toString() + " : " + m.asType().toString()));
-        out.println("");
+        names.forEach(n -> dataBuffer.registerFieldElement(e, new FieldInfo(n.getSimpleName(), n.asType(), n.getModifiers())));
     }
 
-    private void writeParamSection(ElementKind e, Map<ElementKind, List<Element>> info, Element classElement) {
-        out.println(e.toString() + ":");
+    private void writeParamSection(ElementKind e, Map<ElementKind, List<Element>> info) {
         List<Element> names = info.get(e);
-
-        for (Element method : names) {
-
-            out.println("    " + method.getSimpleName().toString());
-            ExecutableType currentEx = ((ExecutableType) method.asType());
-            //eww
-            List<String> paramNames = ((ExecutableElement) method).getParameters().stream().map(n -> n.getSimpleName().toString()).collect(Collectors.toList());
-            //bad fix, will probably break later
-            if (!currentEx.getReturnType().toString().equals("void"))
-                out.println("    RETURNS TYPE: " + ((ExecutableType) method.asType()).getReturnType().toString());
-
-            if (!(currentEx.getParameterTypes().isEmpty())) {
-                out.println("    PARAMS: ");
-                for (int i = 0; i < currentEx.getParameterTypes().size(); i++) {
-                    out.print("        ");
-                    //add in param names
-                    out.print(paramNames.get(i));
-                    out.print(" : ");
-                    out.println(currentEx.getParameterTypes().get(i).toString());
-                }
+        names.forEach(n -> {
+            List<Info> fieldInfo = new ArrayList<>();
+            List<Name> params = ((ExecutableElement) n).getParameters().stream().map(VariableElement::getSimpleName).collect(Collectors.toList());
+            List<? extends TypeMirror> types = ((ExecutableType) n.asType()).getParameterTypes();
+            for(int i = 0; i < params.size(); i++) {
+                fieldInfo.add(new Info(params.get(i), types.get(i)));
             }
-            out.println("");
+            dataBuffer.registerExecutableElement(e, n.getSimpleName(), fieldInfo, ((ExecutableElement) n).getReturnType(), n.getModifiers());
+        });
 
-        }
     }
 
     private List<String> getFormattedParams(Element el) {
@@ -170,4 +128,5 @@ public class MarkProcessor extends AbstractProcessor {
         }
         return paramTypes;
     }
+
 }
